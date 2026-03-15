@@ -17,7 +17,7 @@ import httpx
 
 from .config import settings
 
-CLIENT_ID = "Iv1.b507a08c87ecfe98"
+CLIENT_ID = "Iv23liuVgYbLZwlARzsi"
 DEVICE_CODE_URL = "https://github.com/login/device/code"
 ACCESS_TOKEN_URL = "https://github.com/login/oauth/access_token"
 COPILOT_TOKEN_URL = "https://api.github.com/copilot_internal/v2/token"
