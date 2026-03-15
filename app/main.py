@@ -10,14 +10,13 @@ Usage:
     3. Use /v1/chat/completions and /v1/models like any OpenAI API
 """
 
-import asyncio
 from contextlib import asynccontextmanager
 from typing import Any, Optional, Union
 
-from fastapi import Depends, FastAPI, HTTPException, Request
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 from sse_starlette.sse import EventSourceResponse
 
 from .auth import (
@@ -27,7 +26,7 @@ from .auth import (
     start_device_flow,
 )
 from .config import settings
-from .models import AVAILABLE_MODELS, get_model, list_models
+from .models import get_model, list_models
 from .proxy import build_models_response, proxy_chat_completion
 
 
@@ -59,31 +58,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-
-# ---------------------------------------------------------------------------
-# Auth dependency
-# ---------------------------------------------------------------------------
-
-
-async def verify_api_key(request: Request) -> None:
-    """Verify the Bearer token matches the configured PROXY_API_KEY.
-
-    Skips auth for /health, /login*, and /docs endpoints.
-    """
-    path = request.url.path
-    if path in ("/health", "/", "/docs", "/openapi.json", "/redoc"):
-        return
-    if path.startswith("/login"):
-        return
-
-    auth_header = request.headers.get("Authorization", "")
-    if not auth_header.startswith("Bearer "):
-        raise HTTPException(status_code=401, detail="Missing Bearer token")
-
-    token = auth_header[len("Bearer ") :]
-    if token != settings.proxy_api_key:
-        raise HTTPException(status_code=401, detail="Invalid API key")
 
 
 # ---------------------------------------------------------------------------
@@ -148,14 +122,14 @@ async def root():
     }
 
 
-@app.get("/v1/models", dependencies=[Depends(verify_api_key)])
+@app.get("/v1/models")
 async def get_models():
     """List available models (OpenAI-compatible format)."""
     models_data = [{"id": m.id, "name": m.name} for m in list_models()]
     return build_models_response(models_data)
 
 
-@app.post("/v1/chat/completions", dependencies=[Depends(verify_api_key)])
+@app.post("/v1/chat/completions")
 async def chat_completions(request: ChatCompletionRequest):
     """Create a chat completion (OpenAI-compatible).
 
@@ -167,7 +141,7 @@ async def chat_completions(request: ChatCompletionRequest):
         from openai import OpenAI
 
         client = OpenAI(
-            api_key="your-proxy-api-key",
+            api_key="unused",
             base_url="http://localhost:8000/v1"
         )
         response = client.chat.completions.create(
@@ -288,29 +262,6 @@ async def login_poll(request: LoginPollRequest):
             expires_in=request.expires_in,
         )
         copilot = await complete_login(github_token)
-        return {
-            "status": "success",
-            "message": "Successfully authenticated with GitHub Copilot!",
-            "copilot_ready": copilot.is_usable(),
-            "base_url": copilot.base_url,
-        }
-    except RuntimeError as e:
-        raise HTTPException(status_code=400, detail=str(e))
-
-
-class TokenLoginRequest(BaseModel):
-    github_token: str = Field(..., description="GitHub personal access token or OAuth token")
-
-
-@app.post("/login/token")
-async def login_with_token(request: TokenLoginRequest):
-    """Login directly with a GitHub token (PAT or OAuth token).
-
-    If you already have a GitHub token, you can skip the device flow
-    and provide it directly.
-    """
-    try:
-        copilot = await complete_login(request.github_token)
         return {
             "status": "success",
             "message": "Successfully authenticated with GitHub Copilot!",

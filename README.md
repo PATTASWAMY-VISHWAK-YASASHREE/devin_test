@@ -11,56 +11,31 @@ cd copilot-proxy
 pip install -r requirements.txt
 ```
 
-### 2. Configure
-
-```bash
-cp .env.example .env
-# Edit .env and set your PROXY_API_KEY (used to protect the proxy)
-```
-
-### 3. Run the server
+### 2. Run the server
 
 ```bash
 uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
-### 4. Authenticate with GitHub
-
-**Option A: Device Flow (recommended)**
+### 3. Authenticate with GitHub (Device Flow)
 
 ```bash
 # Start the device flow
 curl http://localhost:8000/login
 
-# Follow the URL and enter the code, then poll for completion:
+# Follow the URL and enter the code in your browser, then poll for completion:
 curl -X POST http://localhost:8000/login/poll \
   -H "Content-Type: application/json" \
   -d '{"device_code": "YOUR_DEVICE_CODE", "interval": 5, "expires_in": 900}'
 ```
 
-**Option B: Direct Token**
-
-If you already have a GitHub token (from `gh auth token` or a PAT with Copilot access):
-
-```bash
-curl -X POST http://localhost:8000/login/token \
-  -H "Content-Type: application/json" \
-  -d '{"github_token": "gho_xxxxx"}'
-```
-
-Or set it in your `.env`:
-
-```env
-GITHUB_TOKEN=gho_xxxxx
-```
-
-### 5. Use it like any OpenAI API
+### 4. Use it like any OpenAI API
 
 ```python
 from openai import OpenAI
 
 client = OpenAI(
-    api_key="your-proxy-api-key",  # The PROXY_API_KEY from your .env
+    api_key="unused",  # Not used, but required by the client
     base_url="http://localhost:8000/v1"
 )
 
@@ -93,10 +68,8 @@ for chunk in stream:
 | `o1` | OpenAI |
 | `o1-mini` | OpenAI |
 | `o3-mini` | OpenAI |
-| `claude-sonnet-4` | Anthropic |
 | `claude-sonnet-4.5` | Anthropic |
 | `claude-sonnet-4.6` | Anthropic |
-| `gemini-2.5-pro` | Google |
 
 ## API Endpoints
 
@@ -106,7 +79,6 @@ for chunk in stream:
 | `/v1/models` | GET | List available models |
 | `/login` | GET | Start GitHub device flow login |
 | `/login/poll` | POST | Poll for login completion |
-| `/login/token` | POST | Login with existing GitHub token |
 | `/health` | GET | Health check |
 | `/docs` | GET | Interactive API docs (Swagger) |
 
@@ -114,8 +86,7 @@ for chunk in stream:
 
 | Environment Variable | Description | Default |
 |---------------------|-------------|---------|
-| `GITHUB_TOKEN` | GitHub OAuth/PAT token | (empty) |
-| `PROXY_API_KEY` | API key clients must use | `changeme` |
+| `GITHUB_TOKEN` | GitHub token (auto-set after device flow login) | (empty) |
 | `HOST` | Server bind address | `0.0.0.0` |
 | `PORT` | Server port | `8000` |
 
@@ -137,7 +108,7 @@ from langchain_openai import ChatOpenAI
 
 llm = ChatOpenAI(
     model="gpt-4o",
-    api_key="your-proxy-api-key",
+    api_key="unused",
     base_url="http://localhost:8000/v1"
 )
 ```
@@ -146,7 +117,6 @@ llm = ChatOpenAI(
 
 ```bash
 curl http://localhost:8000/v1/chat/completions \
-  -H "Authorization: Bearer your-proxy-api-key" \
   -H "Content-Type: application/json" \
   -d '{
     "model": "gpt-4o",

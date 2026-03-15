@@ -7,7 +7,6 @@ class Settings(BaseSettings):
     """Application settings loaded from environment variables."""
 
     github_token: str = ""
-    proxy_api_key: str = "changeme"
     host: str = "0.0.0.0"
     port: int = 8000
     token_cache_path: str = "copilot_token_cache.json"
