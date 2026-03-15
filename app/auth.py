@@ -189,11 +189,15 @@ async def start_device_flow() -> dict:
             json={"client_id": CLIENT_ID, "scope": "read:user"},
         )
         if resp.status_code != 200:
-            raise RuntimeError(f"GitHub device code request failed: HTTP {resp.status_code}")
+            raise RuntimeError(
+                f"GitHub device code request failed: HTTP {resp.status_code}"
+            )
         return resp.json()
 
 
-async def poll_for_access_token(device_code: str, interval: int, expires_in: int) -> str:
+async def poll_for_access_token(
+    device_code: str, interval: int, expires_in: int
+) -> str:
     """Poll GitHub for access token after user authorizes the device code."""
     deadline = time.time() + expires_in
     interval_s = max(1, interval)

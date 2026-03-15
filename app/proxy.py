@@ -90,7 +90,9 @@ def _has_image_content(messages: list[dict[str, Any]]) -> bool:
     return False
 
 
-async def _non_stream_response(url: str, headers: dict[str, str], body: dict[str, Any]) -> dict:
+async def _non_stream_response(
+    url: str, headers: dict[str, str], body: dict[str, Any]
+) -> dict:
     """Send a non-streaming request and return the response."""
     async with httpx.AsyncClient(timeout=120.0) as client:
         resp = await client.post(url, headers=headers, json=body)
@@ -101,7 +103,9 @@ async def _non_stream_response(url: str, headers: dict[str, str], body: dict[str
                 error_detail = json.dumps(error_json)
             except (json.JSONDecodeError, ValueError):
                 pass
-            raise RuntimeError(f"Copilot API error: HTTP {resp.status_code} - {error_detail}")
+            raise RuntimeError(
+                f"Copilot API error: HTTP {resp.status_code} - {error_detail}"
+            )
         return resp.json()
 
 
@@ -115,7 +119,9 @@ async def _stream_response(
                 error_text = ""
                 async for chunk in resp.aiter_text():
                     error_text += chunk
-                raise RuntimeError(f"Copilot API error: HTTP {resp.status_code} - {error_text}")
+                raise RuntimeError(
+                    f"Copilot API error: HTTP {resp.status_code} - {error_text}"
+                )
 
             buffer = ""
             async for chunk in resp.aiter_text():
